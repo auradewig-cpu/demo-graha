@@ -1,3 +1,14 @@
+/* Scroll scrubbing performance */
+html {
+  scroll-behavior: auto !important;
+}
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+body {
+  overscroll-behavior: none;
+}
+
 /* Graha Studio Design Tokens */
 :root {
   --gs-gold: #c8a96e;

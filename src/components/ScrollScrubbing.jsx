@@ -1,8 +1,16 @@
+import { useState, useEffect } from "react";
 import { useFrameSequence } from "../hooks/useFrameSequence";
 import { ChapterOverlay } from "./ChapterOverlay";
 
 export function ScrollScrubbing() {
-  const { canvasRef, scrollProgress } = useFrameSequence();
+  const { canvasRef } = useFrameSequence();
+  const [scrollProgress, setScrollProgress] = useState(0);
+
+  useEffect(() => {
+    const handler = (e) => setScrollProgress(e.detail);
+    window.addEventListener("scrub-progress", handler, { passive: true });
+    return () => window.removeEventListener("scrub-progress", handler);
+  }, []);
 
   return (
     <div
@@ -49,9 +57,11 @@ export function ScrollScrubbing() {
             display: "block",
             width: "100vw",
             height: "100vh",
+            willChange: "transform",
+            imageRendering: "auto",
           }}
         />
-        <ChapterOverlay scrollProgress={scrollProgress} />
+        <ChapterOverlay />
       </div>
     </div>
   );

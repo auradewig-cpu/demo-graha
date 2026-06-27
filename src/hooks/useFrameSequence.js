@@ -1,33 +1,56 @@
-import { useRef, useEffect, useState, useCallback } from "react";
+import { useRef, useEffect, useCallback } from "react";
 
 const TOTAL_FRAMES = 220;
-const MAX_DPR = 1.5;
-
-function frameSrc(index) {
-  const n = String(index + 1).padStart(4, "0");
+const FRAME_PATH = (i) => {
+  const n = String(i + 1).padStart(4, "0");
   return `/frames/hero-sequence-${n}.webp`;
-}
+};
 
 export function useFrameSequence() {
   const canvasRef = useRef(null);
-  const framesRef = useRef(new Array(TOTAL_FRAMES).fill(null));
-  const currentFrameRef = useRef(0);
-  const rafRef = useRef(null);
-  const [scrollProgress, setScrollProgress] = useState(0);
-  const [currentFrame, setCurrentFrame] = useState(0);
+  const frames = useRef(new Array(TOTAL_FRAMES).fill(null));
+  const loadedFlags = useRef(new Array(TOTAL_FRAMES).fill(false));
+  const rafId = useRef(null);
+  const lastFrame = useRef(-1);
+  const scrollProgressRef = useRef(0);
+
+  const loadFrame = useCallback((index, onLoad) => {
+    if (loadedFlags.current[index]) {
+      onLoad?.();
+      return;
+    }
+    const img = new Image();
+    img.src = FRAME_PATH(index);
+    img.onload = () => {
+      frames.current[index] = img;
+      loadedFlags.current[index] = true;
+      onLoad?.();
+    };
+    img.onerror = () => {
+      loadedFlags.current[index] = true; // skip broken frame
+    };
+  }, []);
+
+  const loadBatch = useCallback((start, end, delayMs = 0) => {
+    setTimeout(() => {
+      for (let i = start; i <= Math.min(end, TOTAL_FRAMES - 1); i++) {
+        loadFrame(i);
+      }
+    }, delayMs);
+  }, [loadFrame]);
 
   const drawFrame = useCallback((index) => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
-    const img = framesRef.current[index];
-    if (!img || !img.complete) return;
+    const img = frames.current[index];
+    if (!canvas || !img) return;
+
     const ctx = canvas.getContext("2d");
     const { width, height } = canvas;
-    ctx.clearRect(0, 0, width, height);
 
     const imgRatio = img.naturalWidth / img.naturalHeight;
     const canvasRatio = width / height;
     let sx = 0, sy = 0, sw = img.naturalWidth, sh = img.naturalHeight;
+
     if (imgRatio > canvasRatio) {
       sw = img.naturalHeight * canvasRatio;
       sx = (img.naturalWidth - sw) / 2;
@@ -35,90 +58,101 @@ export function useFrameSequence() {
       sh = img.naturalWidth / canvasRatio;
       sy = (img.naturalHeight - sh) / 2;
     }
+
     ctx.drawImage(img, sx, sy, sw, sh, 0, 0, width, height);
   }, []);
 
-  const loadFrame = useCallback((index, onLoad) => {
-    if (framesRef.current[index]) {
-      onLoad && onLoad();
-      return;
+  const resizeCanvas = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const isMobile = window.innerWidth < 768;
+    const dpr = Math.min(window.devicePixelRatio || 1, isMobile ? 1 : 1.5);
+
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+
+    canvas.width = Math.round(w * dpr);
+    canvas.height = Math.round(h * dpr);
+    canvas.style.width = w + "px";
+    canvas.style.height = h + "px";
+
+    const ctx = canvas.getContext("2d");
+    ctx.scale(dpr, dpr);
+
+    if (lastFrame.current >= 0 && frames.current[lastFrame.current]) {
+      drawFrame(lastFrame.current);
     }
-    const img = new Image();
-    img.onload = () => {
-      framesRef.current[index] = img;
-      onLoad && onLoad();
-    };
-    img.src = frameSrc(index);
-  }, []);
-
-  const loadRange = useCallback((start, end) => {
-    for (let i = start; i <= end; i++) {
-      loadFrame(i, null);
-    }
-  }, [loadFrame]);
-
-  useEffect(() => {
-    // Fire all first-30 loads immediately (parallel), draw as soon as frame 0 ready
-    for (let j = 0; j < 30; j++) {
-      const idx = j;
-      loadFrame(idx, () => {
-        if (idx === 0) drawFrame(0);
-      });
-    }
-    setTimeout(() => loadRange(30, 99), 300);
-    setTimeout(() => loadRange(100, 179), 900);
-    setTimeout(() => loadRange(180, 219), 1800);
-  }, [loadFrame, loadRange, drawFrame]);
-
-  useEffect(() => {
-    const handleResize = () => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      const dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR);
-      canvas.width = window.innerWidth * dpr;
-      canvas.height = window.innerHeight * dpr;
-      canvas.style.width = "100vw";
-      canvas.style.height = "100vh";
-      const ctx = canvas.getContext("2d");
-      ctx.scale(dpr, dpr);
-      drawFrame(currentFrameRef.current);
-    };
-
-    handleResize();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
   }, [drawFrame]);
 
+  // RAF LOOP — baca scrollY langsung, tanpa scroll event
   useEffect(() => {
     const container = document.getElementById("scroll-scrubbing-container");
     if (!container) return;
 
-    const handleScroll = () => {
-      if (rafRef.current) return;
-      rafRef.current = requestAnimationFrame(() => {
-        rafRef.current = null;
-        const rect = container.getBoundingClientRect();
-        const containerHeight = container.offsetHeight - window.innerHeight;
-        const scrolled = -rect.top;
-        const progress = Math.max(0, Math.min(1, scrolled / containerHeight));
-        const frameIndex = Math.min(
-          TOTAL_FRAMES - 1,
-          Math.floor(progress * (TOTAL_FRAMES - 1))
-        );
+    let running = true;
 
-        setScrollProgress(progress);
-        setCurrentFrame(frameIndex);
-        currentFrameRef.current = frameIndex;
-        drawFrame(frameIndex);
-      });
-    };
+    function tick() {
+      if (!running) return;
+      rafId.current = requestAnimationFrame(tick);
 
-    window.addEventListener("scroll", handleScroll, { passive: true });
+      const rect = container.getBoundingClientRect();
+      const scrollableHeight = rect.height - window.innerHeight;
+      if (scrollableHeight <= 0) return;
+
+      const progress = Math.max(0, Math.min(1, -rect.top / scrollableHeight));
+      scrollProgressRef.current = progress;
+
+      const targetFrame = Math.min(
+        TOTAL_FRAMES - 1,
+        Math.floor(progress * (TOTAL_FRAMES - 1))
+      );
+
+      // Adaptive lazy load: pastikan frame di sekitar posisi current loaded
+      const ahead = 15;
+      const start = Math.max(0, targetFrame - 2);
+      const end = Math.min(TOTAL_FRAMES - 1, targetFrame + ahead);
+      for (let i = start; i <= end; i++) {
+        if (!loadedFlags.current[i]) loadFrame(i);
+      }
+
+      if (targetFrame !== lastFrame.current && loadedFlags.current[targetFrame]) {
+        lastFrame.current = targetFrame;
+        drawFrame(targetFrame);
+      }
+
+      window.dispatchEvent(
+        new CustomEvent("scrub-progress", { detail: progress })
+      );
+    }
+
+    rafId.current = requestAnimationFrame(tick);
     return () => {
-      window.removeEventListener("scroll", handleScroll);
-      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+      running = false;
+      cancelAnimationFrame(rafId.current);
     };
-  }, [drawFrame]);
+  }, [loadFrame, drawFrame]);
 
-  return { canvasRef, currentFrame, scrollProgress };
+  // Preload strategy bertahap
+  useEffect(() => {
+    for (let i = 0; i < 30; i++) {
+      loadFrame(i, () => {
+        if (i === 0) {
+          resizeCanvas();
+          drawFrame(0);
+        }
+      });
+    }
+    loadBatch(30, 99, 400);
+    loadBatch(100, 219, 1200);
+
+    window.addEventListener("resize", resizeCanvas, { passive: true });
+    resizeCanvas();
+
+    return () => {
+      window.removeEventListener("resize", resizeCanvas);
+    };
+  }, [loadFrame, loadBatch, drawFrame, resizeCanvas]);
+
+  return { canvasRef };
 }

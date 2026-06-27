@@ -1,3 +1,5 @@
+import { useState, useEffect } from "react";
+
 const CHAPTERS = [
   {
     range: [-0.02, 0.18],
@@ -60,7 +62,15 @@ function getActiveChapterIndex(progress) {
   return -1;
 }
 
-export function ChapterOverlay({ scrollProgress }) {
+export function ChapterOverlay() {
+  const [scrollProgress, setScrollProgress] = useState(0);
+
+  useEffect(() => {
+    const handler = (e) => setScrollProgress(e.detail);
+    window.addEventListener("scrub-progress", handler, { passive: true });
+    return () => window.removeEventListener("scrub-progress", handler);
+  }, []);
+
   const activeIdx = getActiveChapterIndex(scrollProgress);
   const displayNumber = activeIdx >= 0 ? CHAPTERS[activeIdx].number : "01";
 
@@ -115,7 +125,6 @@ export function ChapterOverlay({ scrollProgress }) {
                 letterSpacing: "0.15em",
                 textTransform: "uppercase",
                 color: "var(--gr-text-secondary, #8C8078)",
-                marginBottom: 12,
                 margin: "0 0 12px 0",
               }}
             >
