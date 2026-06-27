@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.claude/
+.claude-flow/
+*.local
+.env
+.env.*
+asset/
+node_modules

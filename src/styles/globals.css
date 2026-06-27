@@ -1,0 +1,60 @@
+/* Graha Studio Design Tokens */
+:root {
+  --gs-gold: #c8a96e;
+  --gs-gold-dim: #e3c285;
+  --gs-gold-bright: #e5c487;
+  --gs-bg: #0D0D0D;
+  --gs-surface: #131313;
+  --gs-surface-low: #1c1b1b;
+  --gs-surface-container: #20201f;
+  --gs-surface-high: #2a2a2a;
+  --gs-surface-highest: #353535;
+  --gs-on-surface: #e5e2e1;
+  --gs-on-surface-variant: #d0c5b5;
+  --gs-outline: #998f81;
+  --gs-outline-variant: #4d463a;
+  --gs-secondary: #c9c6c5;
+}
+
+/* Graha Studio Global Styles */
+.graha-root {
+  background-color: var(--gs-bg);
+  color: var(--gs-on-surface);
+  font-family: 'Inter', sans-serif;
+  scroll-behavior: smooth;
+}
+
+.graha-root ::-webkit-scrollbar { width: 6px; }
+.graha-root ::-webkit-scrollbar-track { background: var(--gs-bg); }
+.graha-root ::-webkit-scrollbar-thumb { background: var(--gs-surface-highest); border-radius: 4px; }
+.graha-root ::-webkit-scrollbar-thumb:hover { background: var(--gs-gold); }
+
+/* Fade-in animations */
+@media (prefers-reduced-motion: no-preference) {
+  .gs-fade {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.9s cubic-bezier(0.16, 1, 0.3, 1), transform 0.9s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .gs-fade.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .gs-fade.d1 { transition-delay: 150ms; }
+  .gs-fade.d2 { transition-delay: 300ms; }
+  .gs-fade.d3 { transition-delay: 450ms; }
+  .gs-fade.d4 { transition-delay: 600ms; }
+}
+
+@keyframes gs-pulse {
+  0%   { box-shadow: 0 0 0px rgba(200, 169, 110, 0); }
+  50%  { box-shadow: 0 0 28px rgba(200, 169, 110, 0.3); }
+  100% { box-shadow: 0 0 0px rgba(200, 169, 110, 0); }
+}
+.gs-pulse { animation: gs-pulse 2.5s ease-in-out infinite; }
+
+/* Parallax image */
+.gs-parallax-img {
+  transition: transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  will-change: transform;
+}
