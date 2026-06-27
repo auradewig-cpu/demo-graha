@@ -3,10 +3,3 @@ packages:
 allowBuilds:
   '@tailwindcss/oxide': true
   esbuild: true
-supportedArchitectures:
-  os:
-    - win32
-    - current
-  cpu:
-    - x64
-    - current
