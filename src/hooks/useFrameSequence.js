@@ -67,7 +67,9 @@ export function useFrameSequence() {
     if (!canvas) return;
 
     const isMobile = window.innerWidth < 768;
-    const dpr = Math.min(window.devicePixelRatio || 1, isMobile ? 1 : 1.5);
+    const isTablet = window.innerWidth < 1024;
+
+    const dpr = isMobile ? 1 : isTablet ? 1.25 : Math.min(window.devicePixelRatio || 1, 1.5);
 
     const w = window.innerWidth;
     const h = window.innerHeight;

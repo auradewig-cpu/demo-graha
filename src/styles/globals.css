@@ -9,6 +9,19 @@ body {
   overscroll-behavior: none;
 }
 
+/* Mobile layout resets */
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+body {
+  -webkit-overflow-scrolling: touch;
+}
+img {
+  max-width: 100%;
+  height: auto;
+}
+
 /* Graha Studio Design Tokens */
 :root {
   --gs-gold: #c8a96e;
