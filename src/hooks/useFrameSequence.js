@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback } from "react";
+import { useRef, useEffect, useCallback, useState } from "react";
 
 const TOTAL_FRAMES = 220;
 const FRAME_PATH = (i) => {
@@ -13,6 +13,7 @@ export function useFrameSequence() {
   const rafId = useRef(null);
   const lastFrame = useRef(-1);
   const scrollProgressRef = useRef(0);
+  const [firstFrameReady, setFirstFrameReady] = useState(false);
 
   const loadFrame = useCallback((index, onLoad) => {
     if (loadedFlags.current[index]) {
@@ -142,6 +143,7 @@ export function useFrameSequence() {
         if (i === 0) {
           resizeCanvas();
           drawFrame(0);
+          setFirstFrameReady(true);
         }
       });
     }
@@ -156,5 +158,5 @@ export function useFrameSequence() {
     };
   }, [loadFrame, loadBatch, drawFrame, resizeCanvas]);
 
-  return { canvasRef };
+  return { canvasRef, firstFrameReady };
 }

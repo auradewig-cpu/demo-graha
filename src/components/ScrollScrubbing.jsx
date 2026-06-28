@@ -3,7 +3,7 @@ import { useFrameSequence } from "../hooks/useFrameSequence";
 import { ChapterOverlay } from "./ChapterOverlay";
 
 export function ScrollScrubbing() {
-  const { canvasRef } = useFrameSequence();
+  const { canvasRef, firstFrameReady } = useFrameSequence();
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
 
   useEffect(() => {
@@ -27,6 +27,22 @@ export function ScrollScrubbing() {
           background: "#07080A",
         }}
       >
+        <img
+          src="/frames/hero-sequence-0001.webp"
+          alt=""
+          aria-hidden="true"
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            width: "100%",
+            height: "100%",
+            objectFit: "cover",
+            opacity: firstFrameReady ? 0 : 1,
+            transition: "opacity 0.4s ease",
+            pointerEvents: "none",
+          }}
+        />
         <canvas
           ref={canvasRef}
           style={{
